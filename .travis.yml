@@ -1,14 +1,5 @@
-matrix:
-    include:
-        -language: go
-        go:
-            - 1.8.3
-        script:
-            go test -v
-        -language:
-            c
-        compliler:
-            gcc
-        before_script:
-            - cd build
-            - mkdir build
+language: go
+go:
+  - 1.8.3
+script:
+   go test -v
