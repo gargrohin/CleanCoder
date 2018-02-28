@@ -4,7 +4,7 @@
 
 int main()
 {
-        printf("Think again\n");
+        printf("Think again");
         fflush(stdout);
             fork();
                 printf("Hello World!\n");
