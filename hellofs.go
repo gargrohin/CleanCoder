@@ -1,13 +1,14 @@
 package main
 
 import (
-	"bazil.org/fuse"
-	"bazil.org/fuse/fs"
 	"flag"
 	"fmt"
-	"golang.org/x/net/context"
 	"log"
 	"os"
+
+	"bazil.org/fuse"
+	"bazil.org/fuse/fs"
+	"golang.org/x/net/context"
 )
 
 func main() {
@@ -31,7 +32,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	defer con.Close()
+	//defer con.Close()
 
 	err = fs.Serve(con, FS{})
 	if err != nil {
@@ -62,17 +63,20 @@ type Dir struct {
 }
 
 func (d *Dir) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = 1
-	a.Mode = os.ModeDir | 0555
-	d.files = 1
+	a.Inode = 0
+	a.Mode = os.ModeDir | 0777
+	d.files = 2
 	return nil
 }
 
 //reading the directory, read the txt file name
 
 func (d *Dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
-	if name == "hello" {
+	if name == "hw" {
 		return &File{}, nil
+	}
+	if name == "inode" {
+		return &File2{}, nil
 	}
 	return nil, fuse.ENOENT
 }
@@ -82,22 +86,22 @@ func (d *Dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 func (d *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	//var rootchild []fuse.Dirent
 	//if d.files == 1 {
-	var rootchild = []fuse.Dirent{{Inode: 2, Name: "hello", Type: fuse.DT_File}}
+	var rootchild = []fuse.Dirent{{Inode: 1, Name: "hw", Type: fuse.DT_File}, {Inode: 2, Name: "inode", Type: fuse.DT_File}, {Inode: 3, Type: fuse.DT_File, Name: "three"}}
 	//}
 
 	return rootchild, nil
 
 }
 
-//File handler
+//File handlers
 
 const text = "Hello, World!\n"
 
 type File struct{}
 
 func (f *File) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = 2
-	a.Mode = 0444
+	a.Inode = 1
+	a.Mode = 0777
 	a.Size = uint64(len(text))
 	return nil
 }
@@ -105,4 +109,21 @@ func (f *File) Attr(ctx context.Context, a *fuse.Attr) error {
 //reading the file
 func (f *File) ReadAll(ctx context.Context) ([]byte, error) {
 	return []byte(text), nil
+}
+
+// File 2 to see how inodes work
+
+const txt2 = "File 2. Check Inode working"
+
+type File2 struct{}
+
+func (f *File2) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Inode = 5
+	a.Mode = 0777
+	a.Size = uint64(len(txt2))
+	return nil
+}
+
+func (f *File2) ReadAll(ctx context.Context) ([]byte, error) {
+	return []byte(txt2), nil
 }
