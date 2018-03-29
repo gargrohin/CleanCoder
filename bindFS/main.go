@@ -109,14 +109,33 @@ func (d Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 }
 
+//creates a dir
+
+func (d *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
+	err := os.Mkdir(d.name+"/"+req.Name, req.Mode)
+	dchild := &Dir{name: d.name + "/" + req.Name}
+	return dchild, err
+}
+
+func (d *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
+	_, err := os.Create(d.name + "/" + req.Name)
+	f := &File{name: d.name + "/" + req.Name}
+	return f, f, err
+}
+
 type File struct {
 	name string
+}
+
+type Handle struct {
+	name   string
+	handle *os.File
 }
 
 func (f File) Attr(ctx context.Context, a *fuse.Attr) error {
 
 	var fatr syscall.Stat_t
-	syscall.Stat(f.name, &fatr)
+	syscall.Lstat(f.name, &fatr)
 	a.Inode = fatr.Ino
 	a.Mode = os.FileMode(fatr.Mode)
 	a.Size = uint64(fatr.Size)
@@ -131,4 +150,38 @@ func (f File) ReadAll(ctx context.Context) ([]byte, error) {
 		log.Fatal(err)
 	}
 	return txt, nil
+}
+
+func (fh Handle) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+	txt, err := ioutil.ReadFile(fh.name)
+	resp.Data = txt
+	return err
+}
+
+func (fh Handle) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
+	n, err := fh.handle.Write(req.Data)
+	resp.Size = int(n)
+	return err
+
+}
+
+func (fh Handle) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
+	fh.handle.Sync()
+	return nil
+}
+
+func (f File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
+	fileinfo, err := os.Lstat(f.name)
+
+	fh, err := os.OpenFile(f.name, int(req.Flags), fileinfo.Mode())
+
+	resp.Handle = fuse.HandleID(req.Header.Node)
+	resp.Flags = fuse.OpenResponseFlags(req.Flags)
+
+	return &Handle{name: f.name, handle: fh}, err
+}
+
+func (fh Handle) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
+	err := fh.handle.Close()
+	return err
 }
