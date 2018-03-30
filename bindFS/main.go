@@ -10,6 +10,7 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"golang.org/x/net/context"
+	"time"
 )
 
 func main() {
@@ -118,9 +119,10 @@ func (d *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 }
 
 func (d *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
-	_, err := os.Create(d.name + "/" + req.Name)
+	file_opened, err := os.Create(d.name + "/" + req.Name)
 	f := &File{name: d.name + "/" + req.Name}
-	return f, f, err
+	fh := &Handle{name: d.name + "/" + req.Name, handle: file_opened}
+	return f, fh, err
 }
 
 type File struct {
@@ -136,21 +138,38 @@ func (f File) Attr(ctx context.Context, a *fuse.Attr) error {
 
 	var fatr syscall.Stat_t
 	syscall.Lstat(f.name, &fatr)
+	fileinfo, _ := os.Lstat(f.name)
 	a.Inode = fatr.Ino
 	a.Mode = os.FileMode(fatr.Mode)
 	a.Size = uint64(fatr.Size)
+	a.Mtime = time.Time(fileinfo.ModTime())
+	a.Blocks = uint64(fatr.Blocks)
+	a.BlockSize = uint32(fatr.Blksize)
+	a.Nlink = uint32(fatr.Nlink)
+	a.Uid = uint32(fatr.Uid)
+	a.Gid = uint32(fatr.Gid)
+	a.Rdev = uint32(fatr.Rdev)
+	return nil
+}
+
+func (f File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
+	if req.Valid.Size() {
+		os.Truncate(f.name, int64(req.Size))
+	}
+	if req.Valid.Atime() || req.Valid.Mtime() {
+		os.Chtimes(f.name, req.Atime, req.Mtime)
+	}
+	if req.Valid.Gid() || req.Valid.Uid() {
+		os.Chown(f.name, int(req.Uid), int(req.Gid))
+	}
+	if req.Valid.Mode() {
+		os.Chmod(f.name, req.Mode)
+	}
+
 	return nil
 }
 
 //reading the file
-func (f File) ReadAll(ctx context.Context) ([]byte, error) {
-	//file,_=os.Open(f.name)
-	txt, err := ioutil.ReadFile(f.name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return txt, nil
-}
 
 func (fh Handle) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	txt, err := ioutil.ReadFile(fh.name)
@@ -160,7 +179,10 @@ func (fh Handle) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.Rea
 
 func (fh Handle) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
 	n, err := fh.handle.Write(req.Data)
+	//log.Println(req.Offset)
 	resp.Size = int(n)
+	//newsize := req.Offset + int64(n)
+	//err = os.Truncate(fh.name, newsize)
 	return err
 
 }
@@ -183,5 +205,10 @@ func (f File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenRe
 
 func (fh Handle) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 	err := fh.handle.Close()
+	return err
+}
+
+func (d Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
+	err := os.Remove(d.name + "/" + req.Name)
 	return err
 }
