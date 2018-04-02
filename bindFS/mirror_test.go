@@ -17,7 +17,7 @@ func Test(t *testing.T) {
 		req    *fuse.ReadlinkRequest
 		target string
 	}{
-		{&File{"original/link"}, *fuse.ReadlinkRequest{}, "test1"},
+		{File{"original/link"}, *fuse.ReadlinkRequest{}, "test1"},
 	}
 
 	for _, testcase := range readlink_test {
