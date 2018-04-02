@@ -7,24 +7,6 @@ import (
 	"testing"
 )
 
-func TestMount(t *testing.T) {
-	/*flag.Parse()
-
-	if flag.NArg() != 1 {
-		t.Error("no mountpoint given")
-	}
-
-	mountpoint := flag.Arg(0)*/
-	mountpoint := "mnt"
-
-	out := mount(mountpoint)
-
-	if out != nil {
-		t.Error("error mounting the fs")
-	}
-
-}
-
 var fhandle FS
 
 func TestRoot(t *testing.T) {
