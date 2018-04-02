@@ -72,7 +72,7 @@ func TestLookup(t *testing.T) {
 		{Dir{"original"}, "file.png", File{"original/file.png"}},
 		{Dir{"original"}, "dir1", Dir{"original/dir1"}},
 		{Dir{"original"}, "random", nil},
-		{Dir{"original/dir1"}, "dir2", Dir{"original/dir1/dir2"}},
+		{Dir{"original/dir1"}, "dir2", nil},
 		{Dir{"original/dir1"}, ".rc", File{"original/dir1/.rc"}},
 		{Dir{"original/dir1"}, "random", nil},
 		{Dir{"original/dir1/dir2"}, "random", nil},
