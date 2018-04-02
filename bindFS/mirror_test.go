@@ -37,8 +37,7 @@ func TestReadDir(t *testing.T) {
 	}{
 		{Dir{"original"}, []fuse.Dirent{{Name: "dir1", Type: fuse.DT_Dir}, {Name: "file.png", Type: fuse.DT_File},
 			{Name: "file1", Type: fuse.DT_File}, {Name: "file2", Type: fuse.DT_Link}}},
-		{Dir{"original/dir1"}, []fuse.Dirent{{Name: ".rc", Type: fuse.DT_File}, {Name: "a.py", Type: fuse.DT_File},
-			{Name: "dir2", Type: fuse.DT_Dir}}},
+		{Dir{"original/dir1"}, []fuse.Dirent{{Name: ".rc", Type: fuse.DT_File}, {Name: "a.py", Type: fuse.DT_File}}},
 		{Dir{"original/dir1/dir2"}, []fuse.Dirent{}},
 	}
 
