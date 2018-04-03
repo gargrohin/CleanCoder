@@ -229,8 +229,18 @@ func (fh Handle) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 	return err
 }
 
-func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
+func (f File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
 	target, err := os.Readlink(f.name)
 	//log.Println(target)
 	return target, err
 }
+
+func (d Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
+
+	oldpath := d.name + "/" + req.OldName
+	newpath := d.name + "/" + req.NewName
+	err := os.Rename(oldpath, newpath)
+	return err
+}
+
+//func (f File) Symlink(ctx context.Context,req *fuse.SymlinkRequest)()
