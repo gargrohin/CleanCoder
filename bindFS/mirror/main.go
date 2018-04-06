@@ -161,7 +161,7 @@ func (f File) Attr(ctx context.Context, a *fuse.Attr) error {
 	syscall.Lstat(f.name, &fatr)
 	fileinfo, _ := os.Lstat(f.name)
 	a.Inode = fatr.Ino
-	a.Mode = os.FileMode(fatr.Mode)
+	a.Mode = fileinfo.Mode()
 	a.Size = uint64(fatr.Size)
 	a.Mtime = time.Time(fileinfo.ModTime())
 	a.Blocks = uint64(fatr.Blocks)
@@ -192,10 +192,9 @@ func (f File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.
 
 //reading the file
 
-func (fh Handle) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	txt, err := ioutil.ReadFile(fh.name)
-	resp.Data = txt
-	return err
+func (fh Handle) ReadAll(ctx context.Context) ([]byte, error) {
+	data, err := ioutil.ReadFile(fh.name)
+	return data, err
 }
 
 func (fh Handle) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
@@ -243,4 +242,8 @@ func (d Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node
 	return err
 }
 
-//func (f File) Symlink(ctx context.Context,req *fuse.SymlinkRequest)()
+func (d Dir) Symlink(ctx context.Context, req *fuse.SymlinkRequest) (fs.Node, error) {
+	newPath := d.name + "/" + req.NewName
+	err := os.Symlink(req.Target, newPath)
+	return File{name: newPath}, err
+}
