@@ -162,7 +162,7 @@ func (f File) Attr(ctx context.Context, a *fuse.Attr) error {
 	fileinfo, _ := os.Lstat(f.name)
 	a.Inode = fatr.Ino
 	a.Mode = fileinfo.Mode()
-	a.Size = uint64(fatr.Size)
+	a.Size = uint64(fatr.Size + 5)
 	a.Mtime = time.Time(fileinfo.ModTime())
 	a.Blocks = uint64(fatr.Blocks)
 	a.BlockSize = uint32(fatr.Blksize)
@@ -194,12 +194,28 @@ func (f File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.
 
 func (fh Handle) ReadAll(ctx context.Context) ([]byte, error) {
 	data, err := ioutil.ReadFile(fh.name)
-	return data, err
+	str := string(data)
+	a := str + "\n\n\n\n\n"
+	//b := []byte("appendeededee \n\n\n\n\n")
+	//a := append(data, b...)
+	b := []byte(a)
+	//log.P	rint(string(b))
+	//os.Truncate(fh.name, int64(len(b)))
+	return b, err
 }
 
+/*func (fh Handle) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+	data, err := ioutil.ReadFile(fh.name)
+	resp.Data = data
+	return err
+}*/
+
 func (fh Handle) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
+	//data := req.Data
+	//str := string(data)
+
 	n, err := fh.handle.Write(req.Data)
-	//log.Println(req.Offset)
+	log.Print("offset:", req.Offset)
 	resp.Size = int(n)
 	//newsize := req.Offset + int64(n)
 	//err = os.Truncate(fh.name, newsize)
@@ -215,12 +231,12 @@ func (fh Handle) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 func (f File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
 	fileinfo, err := os.Lstat(f.name)
 
-	fh, err := os.OpenFile(f.name, int(req.Flags), fileinfo.Mode())
+	openf, err := os.OpenFile(f.name, int(req.Flags), fileinfo.Mode())
 
 	resp.Handle = fuse.HandleID(req.Header.Node)
 	resp.Flags = fuse.OpenResponseFlags(req.Flags)
-
-	return &Handle{name: f.name, handle: fh}, err
+	fh := Handle{name: f.name, handle: openf}
+	return fh, err
 }
 
 func (fh Handle) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
